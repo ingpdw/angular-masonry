@@ -5,6 +5,26 @@
  */
 (function () {
   'use strict';
+  //Support for Windows Internet Explorer 7
+  if (!('filter' in Array.prototype)) {
+    Array.prototype.filter= function(filter, that /*opt*/) {
+        var other= [], v;
+        for (var i=0, n= this.length; i<n; i++)
+            if (i in this && filter.call(that, v= this[i], i, this))
+                other.push(v);
+        return other;
+    };
+  };
+  //Support for Windows Internet Explorer 
+  if (!Object.keys) {
+    Object.keys = function(obj) {
+        var keys = [], key;
+        for (key in obj) {
+            if (obj.hasOwnProperty(key)) {keys.push(key);}
+        }
+        return keys;
+    };
+  };
 
   angular.module('wu.masonry', [])
     .controller('MasonryCtrl', function controller($scope, $element, $timeout) {
@@ -15,7 +35,6 @@
       var timeout = null;
 
       this.preserveOrder = false;
-      this.loadImages = true;
 
       this.scheduleMasonryOnce = function scheduleMasonryOnce() {
         var args = arguments;
@@ -77,10 +96,7 @@
           self.scheduleMasonryOnce('layout');
         }
 
-        if (!self.loadImages){
-          _append();
-          _layout();
-        } else if (self.preserveOrder) {
+        if (self.preserveOrder) {
           _append();
           element.imagesLoaded(_layout);
         } else {
@@ -118,21 +134,31 @@
         $scope.$emit('masonry.reloaded');
       };
 
+      $scope.$on( 'cards.changed', function(){
+       self.scheduleMasonryOnce('layout');
+      });
 
     }).directive('masonry', function masonryDirective() {
       return {
-        restrict: 'AE',
+        restrict: 'AEC',
         controller: 'MasonryCtrl',
         link: {
           pre: function preLink(scope, element, attrs, ctrl) {
+
+            var windowWidth = $( window ).width();
+            var cardWidth = windowWidth < 1680 ? 363 : 440;
+           
+
             var attrOptions = scope.$eval(attrs.masonry || attrs.masonryOptions);
             var options = angular.extend({
               itemSelector: attrs.itemSelector || '.masonry-brick',
-              columnWidth: parseInt(attrs.columnWidth, 10) || attrs.columnWidth
+              columnWidth: cardWidth || parseInt(attrs.columnWidth, 10) || attrs.columnWidth
             }, attrOptions || {});
-            element.masonry(options);
-            var loadImages = scope.$eval(attrs.loadImages);
-            ctrl.loadImages = loadImages !== false;
+
+            element.masonry( options );
+
+            //element.masonry('resize');
+
             var preserveOrder = scope.$eval(attrs.preserveOrder);
             ctrl.preserveOrder = (preserveOrder !== false && attrs.preserveOrder !== undefined);
 
@@ -149,6 +175,11 @@
         link: {
           pre: function preLink(scope, element, attrs, ctrl) {
             var id = scope.$id, index;
+
+            var windowWidth = $( window ).width();
+            var cardWidth = windowWidth < 1680 ? 363 : 440;
+
+            element.css({ width: cardWidth});
 
             ctrl.appendBrick(element, id);
             element.on('$destroy', function () {
@@ -172,3 +203,13 @@
       };
     });
 }());
+
+
+
+
+
+
+
+
+
+
